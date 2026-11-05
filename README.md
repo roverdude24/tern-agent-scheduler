@@ -165,6 +165,28 @@ With each request, Agent Scheduler tells Carly to use it, rather than her own sc
 > [!NOTE]
 > Jobs Carly creates are active immediately with the default approval (Hands-off), and Carly can't edit or delete them; change or delete them in the manager. You get a toast and a desktop notification, and the manager marks them `by Carly`.
 
+### From a script or another agent
+
+Drop one JSON file into the data folder's `intents/` directory (see [Your data](#your-data)); Agent Scheduler picks it up within a second, creates the job exactly as Carly would (same checks as the manager, default approval, marked `by Carly`) and deletes the file. Tern must be running.
+
+```sh
+D="$HOME/Library/Application Support/Tern/plugin-data/tern-agent-scheduler"
+REPLY=$(LC_ALL=C tr -dc a-z0-9 </dev/urandom | head -c 12)
+F="$D/intents/$(date +%s)000-agent-0001.json"
+mkdir -p "$D/intents"
+cat >"$F.tmp" <<EOF
+{"format": 1, "kind": "carly_create", "reply": "$REPLY",
+ "name": "standup-notes", "prompt": "Summarise yesterday's commits.",
+ "when": "weekdays 9am", "folder": "$HOME/Dev/app"}
+EOF
+mv "$F.tmp" "$F"   # write then rename, so a half-written file is never read
+sleep 2; cat "$D/replies/$REPLY.json"
+```
+
+- **File name:** `<digits>-<letters or digits>-<digits>.json`; files are applied in name order. Anything else in `intents/` is ignored.
+- **Fields:** `format` (1), `kind` (`"carly_create"`), `reply` (12 lowercase letters or digits), `prompt` and `when` (required), `folder` (full path or `~/…`), and optionally `name` (else taken from the prompt), `role`, `quiet_ok` and `only_when` (as for Carly). `expires` (unix seconds) drops the request if it isn't applied by then.
+- **Answer:** `replies/<reply>.json` holds `{"ok": true, "job_id": …, "name": …, "next": …}` or `{"ok": false, "error": "…"}`, the same message the form would show.
+
 ## Good to know
 
 - **A run waiting for your approval** is only noticed while a desktop Tern window is open.

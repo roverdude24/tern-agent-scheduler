@@ -132,6 +132,15 @@ local rq2 = carly("kkkkkkkkkkkk", { name = "quiet-bad", prompt = "p", when = "da
 assert(rq2 and rq2.ok == false and rq2.error == "quiet_ok must be true or false.", "quiet_ok type copy: " .. tostring(rq2 and rq2.error))
 print("PASS carly_create quiet_ok")
 
+-- Headless drop (README "From a script or another agent"): any `<digits>-<word>-<digits>.json` name, no expires.
+local DROP = "/home/u/VINH's $WORKS!"
+fake.dirs[DROP] = true
+fake.intent("1760000999000-agent-0001", { format = 1, kind = "carly_create", reply = "dropdropdrop", name = "dropped", prompt = "p", when = "in 10m", folder = DROP })
+settle()
+local rd = fake.reply("dropdropdrop")
+assert(rd and rd.ok == true and jobs.get(rd.job_id).cwd == DROP, "dropped file creates the job: " .. tern.json.encode(rd))
+print("PASS headless drop creates a job")
+
 -- cached roles: an absent role is refused with the list
 local got
 runner.roles("/home/u/proj", function(list)
